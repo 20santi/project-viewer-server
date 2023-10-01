@@ -73,15 +73,20 @@ const queries = {
     const user = await prismaClient.user.findUnique({ where: { id } });
     return user;
   },
+  getUserById: async (
+    parent: any,
+    { id }: { id: string },
+    ctx: GraphqlContext
+  ) => prismaClient.user.findUnique({ where: { id } }),
 };
 
 const fetchProjects = {
   User: {
-    tweets: (parent: User) => 
-      prismaClient.tweet.findMany({ where: { author: { id: parent.id }}}),
-  }
-}
+    tweets: (parent: User) =>
+      prismaClient.tweet.findMany({ where: { author: { id: parent.id } } }),
+  },
+};
 
-export const resolvers = { queries,fetchProjects };
+export const resolvers = { queries, fetchProjects };
 
 //Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImNsbXoxcjQ0NzAwMDB2YmhzZzhxMjRncHIiLCJlbWFpbCI6InNhbnRpc2luZ2hhMTkxQGdtYWlsLmNvbSIsImlhdCI6MTY5NTcyMjgwOH0.wOREFow5skrEilmybqGNZA94uv5K5LqhBcuLcZv8O5A
