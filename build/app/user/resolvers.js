@@ -13,55 +13,62 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.resolvers = void 0;
-const axios_1 = __importDefault(require("axios"));
 const db_1 = require("../../clients/db");
-const jwt_1 = __importDefault(require("../../services/jwt"));
+const user_1 = __importDefault(require("../../services/user"));
 const queries = {
     verifyGoogleToken: (parent, { token }) => __awaiter(void 0, void 0, void 0, function* () {
-        const googleToken = token;
-        const googleOauthURL = new URL("https://oauth2.googleapis.com/tokeninfo");
-        googleOauthURL.searchParams.set("id_token", googleToken);
-        const { data } = yield axios_1.default.get(googleOauthURL.toString(), {
-            responseType: "json",
-        });
-        const user = yield db_1.prismaClient.user.findUnique({
-            where: { email: data.email },
-        });
-        if (!user) {
-            yield db_1.prismaClient.user.create({
-                data: {
-                    email: data.email,
-                    firstName: data.given_name,
-                    lastName: data.family_name,
-                    profileImageURL: data.picture,
-                },
-            });
-        }
-        const userInDb = yield db_1.prismaClient.user.findUnique({
-            where: { email: data.email },
-        });
-        if (!userInDb) {
-            throw new Error("User with email not found");
-        }
-        const userToken = yield jwt_1.default.generateTokenForUser(userInDb);
-        return userToken;
+        const resultToken = yield user_1.default.verifyGoogleAuthToken(token);
+        return resultToken;
     }),
     getCurrentUser: (parent, args, ctx) => __awaiter(void 0, void 0, void 0, function* () {
         var _a;
-        console.log("ctx: ", ctx);
+        console.log("ctx:------------ ", ctx);
         const id = (_a = ctx.user) === null || _a === void 0 ? void 0 : _a.id;
         if (!id) {
             return "ID not found";
         }
-        const user = yield db_1.prismaClient.user.findUnique({ where: { id } });
+        const user = yield user_1.default.getUserById(id);
         return user;
     }),
-    getUserById: (parent, { id }, ctx) => __awaiter(void 0, void 0, void 0, function* () { return db_1.prismaClient.user.findUnique({ where: { id } }); }),
+    getUserById: (parent, { id }, ctx) => __awaiter(void 0, void 0, void 0, function* () { return user_1.default.getUserById(id); }),
 };
-const fetchProjects = {
+const extraResolvers = {
     User: {
         tweets: (parent) => db_1.prismaClient.tweet.findMany({ where: { author: { id: parent.id } } }),
+        followers: (parent) => __awaiter(void 0, void 0, void 0, function* () {
+            const result = yield db_1.prismaClient.follows.findMany({
+                where: { following: { id: parent.id } },
+                include: {
+                    follower: true,
+                }
+            });
+            return result.map((ele) => ele.follower);
+        }),
+        following: (parent) => __awaiter(void 0, void 0, void 0, function* () {
+            const result = yield db_1.prismaClient.follows.findMany({
+                where: { follower: { id: parent.id } },
+                include: {
+                    following: true,
+                },
+            });
+            return result.map((ele) => ele.following);
+        }),
     },
 };
-exports.resolvers = { queries, fetchProjects };
+const mutations = {
+    followUser: (parent, { to }, ctx) => __awaiter(void 0, void 0, void 0, function* () {
+        console.log("CTX: ", ctx.user);
+        if (!ctx.user || !ctx.user.id)
+            throw new Error("unauthenticated User");
+        yield user_1.default.followUser(ctx.user.id, to);
+        return true;
+    }),
+    unFollowUser: (parent, { to }, ctx) => __awaiter(void 0, void 0, void 0, function* () {
+        if (!ctx.user || !ctx.user.id)
+            throw new Error("unauthenticated User");
+        yield user_1.default.unFollowUser(ctx.user.id, to);
+        return true;
+    }),
+};
+exports.resolvers = { queries, extraResolvers, mutations };
 //Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImNsbXoxcjQ0NzAwMDB2YmhzZzhxMjRncHIiLCJlbWFpbCI6InNhbnRpc2luZ2hhMTkxQGdtYWlsLmNvbSIsImlhdCI6MTY5NTcyMjgwOH0.wOREFow5skrEilmybqGNZA94uv5K5LqhBcuLcZv8O5A

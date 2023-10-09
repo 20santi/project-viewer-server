@@ -1,15 +1,39 @@
 import { Tweet } from "@prisma/client";
 import { prismaClient } from "../../clients/db";
 import { GraphqlContext } from "../../interfaces";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import UserService from "../../services/user";
+import TweetService, { CreateTweetPayload } from "../../services/tweet";
 
-interface CreateTweetPayload {
-  content: string;
-  imageURL: string;
-}
+const s3Client = new S3Client({
+  region: process.env.AWS_DEFAULT_REGION,
+});
 
 const queries = {
-  getAllTweets: () => prismaClient.tweet.findMany({ orderBy: { createdAt: "desc" }}),
-}
+  getAllTweets: () => TweetService.getAllTweets(),
+  getSignedURLForTweet: async (
+    parent: any,
+    { imageType, imageName }: { imageType: string; imageName: string },
+    ctx: GraphqlContext
+  ) => {
+    //if (!ctx.user || !ctx.user.id) throw new Error("Unauthenticated");
+
+    const allowedImageTypes = ["jpg", "jpeg", "png", "webp"];
+    console.log("Image type: ", imageType);
+    if (!allowedImageTypes.includes(imageType)) {
+      throw new Error("Unsupported Image type");
+    }
+
+    const putObjectCommand = new PutObjectCommand({
+      Bucket: process.env.AWS_S3_BUCKET,
+      Key: `uploads/tweets/${imageName}-${Date.now()}.${imageType}`,
+    });
+
+    const signedURL = await getSignedUrl(s3Client, putObjectCommand);
+    return signedURL;
+  },
+};
 
 const mutations = {
   createTweet: async (
@@ -19,15 +43,9 @@ const mutations = {
   ) => {
     if (!ctx.user) throw new Error("You are not logged in user");
     console.log("ID: ", ctx.user.id);
-    const tweet = await prismaClient.tweet.create({
-      data: {
-        content: payload.content,
-        imageURL: payload.imageURL,
-        author: { connect: { id: ctx.user.id } },
-      },
-      include: {
-        author: true, // Include the author's details in the response
-      },
+    const tweet = await TweetService.createTweet({
+      ...payload,
+      userId: ctx.user.id,
     });
 
     return tweet;
@@ -35,10 +53,9 @@ const mutations = {
 };
 
 const fetchUserDetails = {
-    Tweet: {
-        author: (parent: Tweet) => 
-            prismaClient.user.findUnique({ where: { id: parent.authorId }}),
-    }
-}
+  Tweet: {
+    author: (parent: Tweet) => UserService.getUserById(parent.authorId),
+  },
+};
 
 export const resolvers = { mutations, fetchUserDetails, queries };

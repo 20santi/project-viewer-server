@@ -19,15 +19,28 @@ model User {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  tweets Tweet[]
+  tweets    Tweet[]
+
+  followers Follows[] @relation("follower")
+  following Follows[] @relation("following")
+}
+
+model Follows {
+  follower   User   @relation("follower", fields: [followerId], references: [id])
+  followerId String
+
+  following   User   @relation("following", fields: [followingId], references: [id])
+  followingId String
+
+  @@id([followerId, followingId])
 }
 
 model Tweet {
-  id String @id @default(cuid())
-  content String
-  imageURL String
-  author User @relation(fields: [authorId], references: [id])
-  authorId String
+  id        String   @id @default(cuid())
+  content   String
+  imageURL  String
+  author    User     @relation(fields: [authorId], references: [id])
+  authorId  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
