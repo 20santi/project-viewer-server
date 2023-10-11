@@ -75,7 +75,6 @@ const extraResolvers = {
                 for (const followingOfFollowUser of followings.following.followers) {
                     if (followingOfFollowUser.following.id !== ctx.user.id &&
                         myFollowing.findIndex((e) => e.followingId === followingOfFollowUser.following.id) < 0) {
-                        console.log("Follow: ", followingOfFollowUser);
                         users.push(followingOfFollowUser.following);
                     }
                 }

@@ -81,7 +81,6 @@ const extraResolvers = {
               (e) => e.followingId === followingOfFollowUser.following.id
             ) < 0
           ) {
-            console.log("Follow: ", followingOfFollowUser);
             users.push(followingOfFollowUser.following);
           }
         }
