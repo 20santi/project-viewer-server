@@ -25,7 +25,6 @@ const queries = {
     getSignedURLForTweet: (parent, { imageType, imageName }, ctx) => __awaiter(void 0, void 0, void 0, function* () {
         //if (!ctx.user || !ctx.user.id) throw new Error("Unauthenticated");
         const allowedImageTypes = ["jpg", "jpeg", "png", "webp"];
-        console.log("Image type: ", imageType);
         if (!allowedImageTypes.includes(imageType)) {
             throw new Error("Unsupported Image type");
         }
@@ -41,7 +40,6 @@ const mutations = {
     createTweet: (parent, { payload }, ctx) => __awaiter(void 0, void 0, void 0, function* () {
         if (!ctx.user)
             throw new Error("You are not logged in user");
-        console.log("ID: ", ctx.user.id);
         const tweet = yield tweet_1.default.createTweet(Object.assign(Object.assign({}, payload), { userId: ctx.user.id }));
         return tweet;
     }),

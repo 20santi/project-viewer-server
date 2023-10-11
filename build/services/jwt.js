@@ -27,7 +27,6 @@ class JWTService {
     }
     static decodeToken(token) {
         try {
-            console.log("Decode token: ", jsonwebtoken_1.default.verify(token, JWT_SECRET));
             return jsonwebtoken_1.default.verify(token, JWT_SECRET);
         }
         catch (error) {

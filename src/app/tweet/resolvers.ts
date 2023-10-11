@@ -20,7 +20,6 @@ const queries = {
     //if (!ctx.user || !ctx.user.id) throw new Error("Unauthenticated");
 
     const allowedImageTypes = ["jpg", "jpeg", "png", "webp"];
-    console.log("Image type: ", imageType);
     if (!allowedImageTypes.includes(imageType)) {
       throw new Error("Unsupported Image type");
     }
@@ -42,7 +41,6 @@ const mutations = {
     ctx: GraphqlContext
   ) => {
     if (!ctx.user) throw new Error("You are not logged in user");
-    console.log("ID: ", ctx.user.id);
     const tweet = await TweetService.createTweet({
       ...payload,
       userId: ctx.user.id,
